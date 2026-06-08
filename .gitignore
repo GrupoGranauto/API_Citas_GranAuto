@@ -1,0 +1,12 @@
+# Ignorar dependencias de Node
+backend/node_modules/
+
+# Ignorar archivos de configuración local y credenciales
+backend/.env
+backend/credentials/service-account.json
+
+# Logs y temporales
+backend/npm-debug.log*
+backend/yarn-debug.log*
+backend/yarn-error.log*
+.DS_Store
