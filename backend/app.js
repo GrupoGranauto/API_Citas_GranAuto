@@ -9,8 +9,8 @@ const PORT = process.env.PORT || 3000;
 // Middleware para habilitar CORS
 app.use(cors());
 
-// Middleware para parsear cuerpos de peticiones JSON
-app.use(express.json());
+// Middleware para parsear cuerpos de peticiones JSON (límite ampliado a 10MB para lotes grandes)
+app.use(express.json({ limit: '10mb' }));
 
 // Endpoint base para monitoreo o salud de la API
 app.get('/health', (req, res) => {
