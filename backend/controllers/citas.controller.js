@@ -3,6 +3,38 @@ const bigqueryService = require('../services/bigquery.service');
 // Expresión regular para validar formato YYYY-MM-DD
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+// Máximo de registros por petición. Evita lotes gigantes que disparan costo y
+// latencia en BigQuery (protección contra DoS/abuso accidental).
+const MAX_REGISTROS = 1000;
+
+/**
+ * Valida que una cadena sea una fecha real en formato YYYY-MM-DD.
+ * No basta el formato: "2026-13-45" cumple el patrón pero no es una fecha válida,
+ * y una fecha inválida rompería la deduplicación (la llave usa FECHA_CAPTURA).
+ */
+function esFechaValida(str) {
+  if (!DATE_REGEX.test(str)) return false;
+  const [y, m, d] = str.split('-').map(Number);
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
+/**
+ * Deduplica un lote por la tupla (FOLIO_CITA, AGENCIA, FECHA_CAPTURA).
+ * Si la misma llave aparece varias veces, gana el último registro del arreglo.
+ * La llave se arma con JSON.stringify para que sea inequívoca (concatenar con "-"
+ * colisiona si algún campo contiene guiones).
+ */
+function deduplicarLote(registros) {
+  const mapaPorLlave = new Map();
+  for (const reg of registros) {
+    const llave = JSON.stringify([reg.FOLIO_CITA, reg.AGENCIA, reg.FECHA_CAPTURA]);
+    mapaPorLlave.set(llave, reg);
+  }
+  return Array.from(mapaPorLlave.values());
+}
+
 /**
  * Controlador para la creación e inserción de citas de servicio.
  */
@@ -36,6 +68,14 @@ async function crearCitas(req, res) {
       });
     }
 
+    // 2.1 Limitar el tamaño del lote para proteger BigQuery de peticiones abusivas.
+    if (registros.length > MAX_REGISTROS) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: `El lote excede el máximo de ${MAX_REGISTROS} registros por petición`
+      });
+    }
+
     // 3. Validar requeridos y formato de fechas para cada registro
     for (let i = 0; i < registros.length; i++) {
       const reg = registros[i];
@@ -53,48 +93,36 @@ async function crearCitas(req, res) {
       if (!reg.NOMBRE) {
         return res.status(400).json({ ok: false, mensaje: "Campo requerido: NOMBRE" });
       }
-      if (!reg.SERIE) {
-        return res.status(400).json({ ok: false, mensaje: "Campo requerido: SERIE" });
+      // FECHA_CAPTURA es requerida porque forma parte de la llave de deduplicación
+      if (!reg.FECHA_CAPTURA) {
+        return res.status(400).json({ ok: false, mensaje: "Campo requerido: FECHA_CAPTURA" });
       }
 
-      // Validar formato YYYY-MM-DD de FECHA_CITA
-      if (!DATE_REGEX.test(reg.FECHA_CITA)) {
+      // Validar que FECHA_CITA sea una fecha real en formato YYYY-MM-DD
+      if (!esFechaValida(reg.FECHA_CITA)) {
         return res.status(400).json({
           ok: false,
-          mensaje: "Formato inválido para FECHA_CITA. Debe ser YYYY-MM-DD"
+          mensaje: "Formato inválido para FECHA_CITA. Debe ser una fecha real YYYY-MM-DD"
         });
       }
 
-      // Validar formato YYYY-MM-DD de FECHA_CAPTURA si está presente
-      if (reg.FECHA_CAPTURA && !DATE_REGEX.test(reg.FECHA_CAPTURA)) {
+      // Validar que FECHA_CAPTURA sea una fecha real en formato YYYY-MM-DD
+      if (!esFechaValida(reg.FECHA_CAPTURA)) {
         return res.status(400).json({
           ok: false,
-          mensaje: "Formato inválido para FECHA_CAPTURA. Debe ser YYYY-MM-DD"
+          mensaje: "Formato inválido para FECHA_CAPTURA. Debe ser una fecha real YYYY-MM-DD"
         });
       }
     }
 
-    // 4. Obtener el max_vc actual de BigQuery
-    let maxVc = 0;
-    try {
-      maxVc = await bigqueryService.obtenerMaxVC();
-    } catch (err) {
-      console.error("Error al consultar obtenerMaxVC durante la inserción:", err);
-      return res.status(500).json({
-        ok: false,
-        mensaje: "Error interno al verificar correlativos en la base de datos"
-      });
-    }
+    // 3.1 Deduplicar dentro del mismo lote (gana el último registro por llave).
+    registros = deduplicarLote(registros);
 
-    // 5. Formatear los registros y asignar VC incremental
-    const vcInicialNum = maxVc + 1;
-    const vcFinalNum = maxVc + registros.length;
-
-    const registrosFormateados = registros.map((reg, index) => {
-      const currentVc = (maxVc + index + 1).toString();
-
+    // 4. Formatear los registros. El correlativo VC ya NO se calcula aquí:
+    // se genera de forma atómica dentro del MERGE en BigQuery para evitar
+    // colisiones bajo peticiones concurrentes (inserciones 24/7).
+    const registrosFormateados = registros.map((reg) => {
       return {
-        VC: currentVc,
         FOLIO_CITA: reg.FOLIO_CITA ? String(reg.FOLIO_CITA) : null,
         FECHA_CAPTURA: reg.FECHA_CAPTURA ? String(reg.FECHA_CAPTURA) : null,
         FECHA_CITA: reg.FECHA_CITA ? String(reg.FECHA_CITA) : null,
@@ -126,22 +154,21 @@ async function crearCitas(req, res) {
       };
     });
 
-    // 6. Insertar en BigQuery
-    await bigqueryService.insertarCitas(registrosFormateados);
+    // 6. Insertar/actualizar en BigQuery (upsert por llave FOLIO_CITA-AGENCIA-FECHA_CAPTURA).
+    // Si la llave ya existe, el registro anterior se reemplaza por este (datos más recientes).
+    await bigqueryService.upsertCitas(registrosFormateados);
 
     // 7. Retornar respuesta exitosa
     return res.status(200).json({
       ok: true,
       mensaje: "Citas insertadas correctamente",
-      registros_insertados: registros.length,
-      vc_inicial: vcInicialNum.toString(),
-      vc_final: vcFinalNum.toString()
+      registros_insertados: registros.length
     });
 
   } catch (error) {
-    // El error de inserción ya fue logueado detalladamente en el servicio.
-    // Respondemos con un mensaje seguro al cliente.
-    console.error("Error no manejado en crearCitas:", error);
+    // El error de inserción ya fue logueado en el servicio. Aquí solo el mensaje,
+    // sin volcar el objeto completo (podría contener datos del payload / PII).
+    console.error("Error no manejado en crearCitas:", error.message);
     return res.status(500).json({
       ok: false,
       mensaje: "Error interno al procesar e insertar las citas en la base de datos"
@@ -150,5 +177,8 @@ async function crearCitas(req, res) {
 }
 
 module.exports = {
-  crearCitas
+  crearCitas,
+  esFechaValida,
+  deduplicarLote,
+  MAX_REGISTROS
 };

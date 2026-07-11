@@ -5,6 +5,7 @@
     "backend"
   ],
   "scripts": {
-    "start": "npm start -w backend"
+    "start": "npm start -w backend",
+    "dev": "npm run dev -w backend"
   }
 }

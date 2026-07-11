@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API de Citas de Servicio — Referencia</title>
+<style>
+  :root {
+    --bg: #f6f8f9;
+    --surface: #ffffff;
+    --surface-2: #eef2f4;
+    --text: #17242d;
+    --muted: #5c6d78;
+    --border: #e0e6ea;
+    --accent: #0e7490;
+    --accent-strong: #0b5c73;
+    --accent-soft: #d7edf1;
+    --code-bg: #0f1c22;
+    --code-text: #d6e4ea;
+    --code-border: #1d2f38;
+    --ok: #15803d;
+    --warn: #b45309;
+    --err: #b91c1c;
+    --rate: #c2410c;
+    --shadow: 0 1px 2px rgba(20,40,50,.04), 0 8px 24px -12px rgba(20,40,50,.12);
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", "Roboto Mono", Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+    --maxw: 880px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1418;
+      --surface: #131d23;
+      --surface-2: #182329;
+      --text: #e7eef2;
+      --muted: #90a0ab;
+      --border: #24313a;
+      --accent: #29b6cf;
+      --accent-strong: #4fd0e3;
+      --accent-soft: #12333c;
+      --code-bg: #0a1418;
+      --code-text: #cfe0e7;
+      --code-border: #1b2b33;
+      --ok: #4ade80;
+      --warn: #fbbf24;
+      --err: #f87171;
+      --rate: #fb923c;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px -14px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f8f9; --surface: #ffffff; --surface-2: #eef2f4; --text: #17242d;
+    --muted: #5c6d78; --border: #e0e6ea; --accent: #0e7490; --accent-strong: #0b5c73;
+    --accent-soft: #d7edf1; --code-bg: #0f1c22; --code-text: #d6e4ea; --code-border: #1d2f38;
+    --ok: #15803d; --warn: #b45309; --err: #b91c1c; --rate: #c2410c;
+    --shadow: 0 1px 2px rgba(20,40,50,.04), 0 8px 24px -12px rgba(20,40,50,.12);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1418; --surface: #131d23; --surface-2: #182329; --text: #e7eef2;
+    --muted: #90a0ab; --border: #24313a; --accent: #29b6cf; --accent-strong: #4fd0e3;
+    --accent-soft: #12333c; --code-bg: #0a1418; --code-text: #cfe0e7; --code-border: #1b2b33;
+    --ok: #4ade80; --warn: #fbbf24; --err: #f87171; --rate: #fb923c;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px -14px rgba(0,0,0,.5);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 92px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---- Header ---- */
+  header.top {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .top-inner {
+    max-width: var(--maxw); margin: 0 auto; padding: 12px 24px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; letter-spacing: -.01em; }
+  .brand .glyph {
+    width: 30px; height: 30px; border-radius: 8px; flex: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    display: grid; place-items: center; color: #fff; font-size: 16px;
+  }
+  .brand small { display: block; font-weight: 500; font-size: 11.5px; color: var(--muted); letter-spacing: .02em; }
+  .spacer { flex: 1; }
+  .theme-btn {
+    appearance: none; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); width: 38px; height: 38px; border-radius: 9px; cursor: pointer;
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .theme-btn:hover { border-color: var(--accent); }
+  .theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  nav.pills {
+    max-width: var(--maxw); margin: 0 auto; padding: 0 24px 12px;
+    display: flex; gap: 8px; overflow-x: auto; scrollbar-width: thin;
+  }
+  nav.pills a {
+    flex: none; font-size: 13px; padding: 5px 12px; border-radius: 999px;
+    background: var(--surface-2); color: var(--muted); border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  nav.pills a:hover { color: var(--text); text-decoration: none; border-color: var(--border); }
+
+  /* ---- Layout ---- */
+  main { max-width: var(--maxw); margin: 0 auto; padding: 0 24px 96px; }
+  section { padding-top: 56px; }
+  section > h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: .11em;
+    color: var(--accent); margin: 0 0 18px; font-weight: 650;
+    display: flex; align-items: center; gap: 9px;
+  }
+  section > h2 .n {
+    font-variant-numeric: tabular-nums; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 6px; padding: 1px 7px; font-size: 12px;
+  }
+  h3 { font-size: 20px; letter-spacing: -.01em; margin: 34px 0 12px; text-wrap: balance; }
+  p { color: var(--text); }
+  .lead { color: var(--muted); font-size: 15px; }
+
+  /* ---- Hero ---- */
+  .hero { padding-top: 52px; }
+  .eyebrow {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .16em;
+    color: var(--muted); font-weight: 600; margin: 0 0 14px;
+  }
+  .hero h1 {
+    font-size: clamp(30px, 5vw, 46px); line-height: 1.05; letter-spacing: -.025em;
+    margin: 0 0 16px; text-wrap: balance; font-weight: 720;
+  }
+  .hero p.sub { font-size: 18px; color: var(--muted); max-width: 60ch; margin: 0 0 26px; }
+  .meta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px;
+    background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  }
+  .meta-grid div { background: var(--surface); padding: 14px 16px; }
+  .meta-grid .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 3px; }
+  .meta-grid .v { font-family: var(--mono); font-size: 13.5px; color: var(--text); }
+
+  /* ---- Code blocks ---- */
+  .code {
+    border: 1px solid var(--code-border); border-radius: 12px; overflow: hidden;
+    background: var(--code-bg); margin: 16px 0; box-shadow: var(--shadow);
+  }
+  .code-head {
+    display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+    border-bottom: 1px solid var(--code-border); background: rgba(255,255,255,.02);
+  }
+  .code-head .label { font-family: var(--mono); font-size: 12px; color: #8fa7b1; letter-spacing: .02em; }
+  .code-head .dots { display: flex; gap: 6px; }
+  .code-head .dots i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+  .code-head .spacer { flex: 1; }
+  .copy {
+    appearance: none; border: 1px solid var(--code-border); background: transparent;
+    color: #9fb4bd; font-size: 11.5px; font-family: var(--sans); padding: 4px 10px;
+    border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .copy:hover { color: #fff; border-color: #3a505a; }
+  .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .code pre {
+    margin: 0; padding: 16px; overflow-x: auto; font-family: var(--mono);
+    font-size: 13px; line-height: 1.6; color: var(--code-text);
+  }
+  .tok-key { color: #7fd4e6; }
+  .tok-str { color: #a8e6b0; }
+  .tok-punc { color: #7c93a0; }
+  .tok-cmt { color: #63808c; font-style: italic; }
+  .tok-flag { color: #e6c07b; }
+
+  code.inline {
+    font-family: var(--mono); font-size: .86em; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 5px; padding: .1em .4em; color: var(--text);
+  }
+
+  /* ---- Endpoint rows ---- */
+  .endpoint {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 11px;
+    padding: 14px 16px; margin: 12px 0; box-shadow: var(--shadow);
+  }
+  .method {
+    font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    padding: 4px 9px; border-radius: 6px; color: #fff; flex: none;
+  }
+  .method.post { background: var(--accent); }
+  .method.get { background: #3f7d54; }
+  .path { font-family: var(--mono); font-size: 15px; color: var(--text); font-weight: 600; }
+  .endpoint .desc { color: var(--muted); font-size: 14px; width: 100%; margin-top: 2px; }
+
+  /* ---- Tables ---- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; margin: 16px 0; box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--surface); }
+  th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); font-weight: 600; background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td .fname { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+  td .type { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .req-tag { font-size: 11px; font-weight: 600; color: var(--ok); }
+
+  /* ---- Callouts ---- */
+  .note {
+    border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    background: var(--surface); border-radius: 0 10px 10px 0; padding: 13px 16px; margin: 16px 0;
+    font-size: 14px; color: var(--text); box-shadow: var(--shadow);
+  }
+  .note.warn { border-left-color: var(--warn); }
+  .note.lock { border-left-color: var(--muted); }
+  .note strong { font-weight: 650; }
+
+  /* ---- Dedup flow ---- */
+  .keyline {
+    font-family: var(--mono); font-size: 14px; text-align: center; padding: 16px;
+    background: var(--surface); border: 1px dashed var(--accent); border-radius: 12px;
+    margin: 16px 0; color: var(--text);
+  }
+  .keyline b { color: var(--accent); }
+  .flow { display: grid; gap: 10px; margin: 16px 0; }
+  .flow .row {
+    display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 11px;
+    padding: 13px 16px; box-shadow: var(--shadow);
+  }
+  .flow .ico { font-size: 20px; line-height: 1.3; }
+  .flow .row .t { font-weight: 600; margin-bottom: 1px; }
+  .flow .row .d { font-size: 13.5px; color: var(--muted); }
+
+  /* ---- Status codes ---- */
+  .status-list { display: grid; gap: 8px; margin: 16px 0; }
+  .status {
+    display: grid; grid-template-columns: 74px 1fr; gap: 14px; align-items: center;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 15px;
+  }
+  .badge {
+    font-family: var(--mono); font-weight: 700; font-size: 14px; text-align: center;
+    padding: 3px 0; border-radius: 7px; letter-spacing: .02em;
+  }
+  .badge.c200 { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .badge.c400 { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
+  .badge.c401, .badge.c500 { color: var(--err); background: color-mix(in srgb, var(--err) 14%, transparent); }
+  .badge.c429 { color: var(--rate); background: color-mix(in srgb, var(--rate) 15%, transparent); }
+  .status .txt { font-size: 14px; }
+
+  /* ---- Best practices ---- */
+  ul.tips { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 11px; }
+  ul.tips li {
+    display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 15px;
+    font-size: 14px;
+  }
+  ul.tips .ico { font-size: 17px; }
+
+  footer {
+    max-width: var(--maxw); margin: 0 auto; padding: 28px 24px 40px;
+    border-top: 1px solid var(--border); color: var(--muted); font-size: 13px;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  @media (max-width: 560px) {
+    .brand small { display: none; }
+    section { padding-top: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <span class="glyph" aria-hidden="true">◷</span>
+      <div>API de Citas de Servicio
+        <small>Referencia de integración · BigQuery</small>
+      </div>
+    </div>
+    <span class="spacer"></span>
+    <button class="theme-btn" id="themeToggle" aria-label="Cambiar tema" title="Cambiar tema">☾</button>
+  </div>
+  <nav class="pills" aria-label="Secciones">
+    <a href="#inicio">Inicio rápido</a>
+    <a href="#auth">Autenticación</a>
+    <a href="#endpoints">Endpoints</a>
+    <a href="#campos">Campos</a>
+    <a href="#dedup">Deduplicación</a>
+    <a href="#respuestas">Respuestas</a>
+    <a href="#practicas">Buenas prácticas</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero" id="inicio" style="padding-top:52px">
+    <p class="eyebrow">REST · JSON · HTTPS</p>
+    <h1>Registra citas de servicio y guárdalas en BigQuery</h1>
+    <p class="sub">Recibe una o varias citas por petición, valida los datos, evita duplicados y asigna un correlativo interno — automáticamente.</p>
+
+    <div class="code">
+      <div class="code-head">
+        <span class="dots"><i style="background:#e06c6c"></i><i style="background:#e0b96c"></i><i style="background:#6cbf8a"></i></span>
+        <span class="label">Registrar una cita</span>
+        <span class="spacer"></span>
+        <button class="copy" data-copy>⧉ Copiar</button>
+      </div>
+<pre><span class="tok-cmt"># Con solo 5 campos requeridos basta</span>
+curl -X POST https://apicitasgranauto-production.up.railway.app/api/citas <span class="tok-punc">\</span>
+  -H <span class="tok-str">"Content-Type: application/json"</span> <span class="tok-punc">\</span>
+  -H <span class="tok-str">"x-api-key: TU_API_KEY"</span> <span class="tok-punc">\</span>
+  -d <span class="tok-str">'{
+    "FOLIO_CITA": "12345",
+    "FECHA_CAPTURA": "2026-07-08",
+    "FECHA_CITA": "2026-07-15",
+    "AGENCIA": "Toyota Chihuahua",
+    "NOMBRE": "Juan Perez"
+  }'</span></pre>
+    </div>
+
+    <div class="code">
+      <div class="code-head">
+        <span class="label">Respuesta · 200 OK</span>
+        <span class="spacer"></span>
+        <button class="copy" data-copy>⧉ Copiar</button>
+      </div>
+<pre>{ <span class="tok-key">"ok"</span>: <span class="tok-str">true</span>, <span class="tok-key">"mensaje"</span>: <span class="tok-str">"Citas insertadas correctamente"</span>, <span class="tok-key">"registros_insertados"</span>: <span class="tok-str">1</span> }</pre>
+    </div>
+
+    <div class="meta-grid" style="margin-top:22px">
+      <div><div class="k">URL base</div><div class="v">…up.railway.app</div></div>
+      <div><div class="k">Auth</div><div class="v">x-api-key</div></div>
+      <div><div class="k">Formato</div><div class="v">JSON · obj / array</div></div>
+      <div><div class="k">Límite</div><div class="v">1000 / petición</div></div>
+    </div>
+  </section>
+
+  <section id="auth">
+    <h2><span class="n">01</span> Autenticación</h2>
+    <p>Toda petición a <code class="inline">/api/citas</code> necesita tu API Key en el header. Sin clave o con clave incorrecta, la API responde <code class="inline">401 Unauthorized</code>.</p>
+    <div class="code">
+      <div class="code-head"><span class="label">Header requerido</span><span class="spacer"></span><button class="copy" data-copy>⧉ Copiar</button></div>
+<pre><span class="tok-key">x-api-key</span>: TU_API_KEY</pre>
+    </div>
+  </section>
+
+  <section id="endpoints">
+    <h2><span class="n">02</span> Endpoints</h2>
+
+    <div class="endpoint">
+      <span class="method post">POST</span>
+      <span class="path">/api/citas</span>
+      <span class="desc">Registra una cita (objeto) o varias (arreglo, hasta 1000) en una sola petición.</span>
+    </div>
+
+    <p class="lead">El cuerpo acepta dos formas:</p>
+    <div class="code">
+      <div class="code-head"><span class="label">Cuerpo de la petición</span><span class="spacer"></span><button class="copy" data-copy>⧉ Copiar</button></div>
+<pre><span class="tok-cmt">// Una cita</span>
+{ <span class="tok-key">"FOLIO_CITA"</span>: <span class="tok-str">"12345"</span>, <span class="tok-key">"FECHA_CAPTURA"</span>: <span class="tok-str">"2026-07-08"</span>, ... }
+
+<span class="tok-cmt">// Varias citas (hasta 1000)</span>
+[
+  { <span class="tok-key">"FOLIO_CITA"</span>: <span class="tok-str">"12346"</span>, ... },
+  { <span class="tok-key">"FOLIO_CITA"</span>: <span class="tok-str">"12347"</span>, ... }
+]</pre>
+    </div>
+
+    <div class="endpoint">
+      <span class="method get">GET</span>
+      <span class="path">/health</span>
+      <span class="desc">Estado del servicio para monitoreo. No requiere autenticación.</span>
+    </div>
+    <div class="code">
+      <div class="code-head"><span class="label">Respuesta</span><span class="spacer"></span><button class="copy" data-copy>⧉ Copiar</button></div>
+<pre>{
+  <span class="tok-key">"status"</span>: <span class="tok-str">"UP"</span>,
+  <span class="tok-key">"timestamp"</span>: <span class="tok-str">"2026-07-11T17:00:00.000Z"</span>,
+  <span class="tok-key">"message"</span>: <span class="tok-str">"Servicio de Citas activo"</span>
+}</pre>
+    </div>
+  </section>
+
+  <section id="campos">
+    <h2><span class="n">03</span> Campos del registro</h2>
+
+    <h3>Requeridos <span class="req-tag">· 5 obligatorios</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Campo</th><th>Tipo</th><th>Formato</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><span class="fname">FOLIO_CITA</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Identificador de la cita en el sistema de origen</td></tr>
+          <tr><td><span class="fname">FECHA_CITA</span></td><td><span class="type">DATE</span></td><td>YYYY-MM-DD</td><td>Fecha agendada de la cita</td></tr>
+          <tr><td><span class="fname">FECHA_CAPTURA</span></td><td><span class="type">DATE</span></td><td>YYYY-MM-DD</td><td>Fecha en que se registró · 🔑 parte de la llave</td></tr>
+          <tr><td><span class="fname">AGENCIA</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Sucursal o agencia asignada</td></tr>
+          <tr><td><span class="fname">NOMBRE</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Nombre completo del cliente</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Opcionales</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Campo</th><th>Tipo</th><th>Formato</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><span class="fname">HORA_CITA</span></td><td><span class="type">STRING</span></td><td>HH:MM</td><td>Hora agendada (ej. "10:30")</td></tr>
+          <tr><td><span class="fname">CAPTURO_CITA</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Canal o persona que registró la cita</td></tr>
+          <tr><td><span class="fname">ORIGEN_CITA</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Canal origen (ej. "WEB", "TELEFONO")</td></tr>
+          <tr><td><span class="fname">TIPO_CITA</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Tipo de cita (ej. "SERVICIO")</td></tr>
+          <tr><td><span class="fname">TIPO_SERVICIO</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Detalle del servicio (ej. "MANTENIMIENTO")</td></tr>
+          <tr><td><span class="fname">TELEFONO</span></td><td><span class="type">STRING</span></td><td>Numérico</td><td>Teléfono de contacto</td></tr>
+          <tr><td><span class="fname">MODELO</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Modelo del vehículo</td></tr>
+          <tr><td><span class="fname">ANO</span></td><td><span class="type">STRING</span></td><td>4 dígitos</td><td>Año del vehículo (ej. "2024")</td></tr>
+          <tr><td><span class="fname">SERIE</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Número de serie / VIN</td></tr>
+          <tr><td><span class="fname">ASESOR_SERVICIO</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Asesor asignado en la agencia</td></tr>
+          <tr><td><span class="fname">HIGHLIGHT_MES_ANTERIOR</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Información adicional</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn">
+      <strong>⚠️ Fechas reales.</strong> <code class="inline">FECHA_CITA</code> y <code class="inline">FECHA_CAPTURA</code> deben ser fechas válidas en formato <code class="inline">YYYY-MM-DD</code>. Un valor con formato correcto pero imposible (ej. <code class="inline">2026-13-45</code>, o <code class="inline">2026-02-29</code> en año no bisiesto) es rechazado.
+    </div>
+    <div class="note lock">
+      <strong>🔒 Campos del sistema.</strong> El correlativo <code class="inline">VC</code> y los campos de seguimiento (<code class="inline">SERVICIO_EXPRESS</code>, <code class="inline">CONFIRMADA</code>, <code class="inline">ASISTIO</code>, <code class="inline">ORDEN</code>, <code class="inline">REAGENDO</code>, <code class="inline">ASISTIO_REAGENDA</code>, <code class="inline">OBSERVACIONES</code>, <code class="inline">TIPO_OPORTUNIDAD</code>, <code class="inline">ORIGEN_REAGENDA</code>, <code class="inline">CANCELADA</code>) los administra el backend. Si los envías, se ignoran.
+    </div>
+  </section>
+
+  <section id="dedup">
+    <h2><span class="n">04</span> Cómo funciona la deduplicación</h2>
+    <p>Cada cita se identifica de forma única por <strong>tres campos combinados</strong>:</p>
+    <div class="keyline">🔑 Llave &nbsp;=&nbsp; <b>FOLIO_CITA</b> &nbsp;+&nbsp; <b>AGENCIA</b> &nbsp;+&nbsp; <b>FECHA_CAPTURA</b></div>
+    <p class="lead">Al recibir un registro, la API decide automáticamente:</p>
+    <div class="flow">
+      <div class="row"><div class="ico">➕</div><div><div class="t">La llave no existe</div><div class="d">Inserta una cita nueva con un <code class="inline">VC</code> nuevo.</div></div></div>
+      <div class="row"><div class="ico">♻️</div><div><div class="t">La llave ya existe</div><div class="d">Reemplaza la cita anterior con los datos nuevos, conservando su <code class="inline">VC</code> original.</div></div></div>
+      <div class="row"><div class="ico">🏁</div><div><div class="t">La misma llave llega repetida en una petición</div><div class="d">Se queda con el último registro de la lista.</div></div></div>
+    </div>
+    <div class="note">
+      <strong>Resultado:</strong> nunca hay duplicados. Por cada combinación de <code class="inline">FOLIO_CITA</code> + <code class="inline">AGENCIA</code> + <code class="inline">FECHA_CAPTURA</code> existe un único registro, siempre con la información más reciente. Para <strong>actualizar</strong> una cita, reenvíala con la misma llave y los datos nuevos.
+    </div>
+  </section>
+
+  <section id="respuestas">
+    <h2><span class="n">05</span> Respuestas y códigos de estado</h2>
+    <div class="status-list">
+      <div class="status"><span class="badge c200">200</span><span class="txt">Citas registradas correctamente</span></div>
+      <div class="status"><span class="badge c400">400</span><span class="txt">Petición inválida — campo faltante, fecha inválida, límite de lote o JSON malformado</span></div>
+      <div class="status"><span class="badge c401">401</span><span class="txt">API Key faltante o inválida</span></div>
+      <div class="status"><span class="badge c429">429</span><span class="txt">Se superó el límite de peticiones</span></div>
+      <div class="status"><span class="badge c500">500</span><span class="txt">Error interno del servidor</span></div>
+    </div>
+
+    <h3>Éxito · 200</h3>
+    <div class="code">
+      <div class="code-head"><span class="label">200 OK</span><span class="spacer"></span><button class="copy" data-copy>⧉ Copiar</button></div>
+<pre>{
+  <span class="tok-key">"ok"</span>: <span class="tok-str">true</span>,
+  <span class="tok-key">"mensaje"</span>: <span class="tok-str">"Citas insertadas correctamente"</span>,
+  <span class="tok-key">"registros_insertados"</span>: <span class="tok-str">2</span>
+}</pre>
+    </div>
+    <p class="lead"><code class="inline">registros_insertados</code> es el número de registros procesados tras deduplicar la petición.</p>
+
+    <h3>Errores</h3>
+    <div class="code">
+      <div class="code-head"><span class="label">400 · validación</span><span class="spacer"></span><button class="copy" data-copy>⧉ Copiar</button></div>
+<pre>{ <span class="tok-key">"ok"</span>: <span class="tok-str">false</span>, <span class="tok-key">"mensaje"</span>: <span class="tok-str">"Campo requerido: FOLIO_CITA"</span> }
+{ <span class="tok-key">"ok"</span>: <span class="tok-str">false</span>, <span class="tok-key">"mensaje"</span>: <span class="tok-str">"Formato inválido para FECHA_CITA. Debe ser una fecha real YYYY-MM-DD"</span> }
+{ <span class="tok-key">"ok"</span>: <span class="tok-str">false</span>, <span class="tok-key">"mensaje"</span>: <span class="tok-str">"El lote excede el máximo de 1000 registros por petición"</span> }</pre>
+    </div>
+    <div class="code">
+      <div class="code-head"><span class="label">401 · 429 · 500</span><span class="spacer"></span><button class="copy" data-copy>⧉ Copiar</button></div>
+<pre>{ <span class="tok-key">"ok"</span>: <span class="tok-str">false</span>, <span class="tok-key">"mensaje"</span>: <span class="tok-str">"API KEY inválida"</span> }
+{ <span class="tok-key">"ok"</span>: <span class="tok-str">false</span>, <span class="tok-key">"mensaje"</span>: <span class="tok-str">"Demasiadas peticiones, intenta más tarde"</span> }
+{ <span class="tok-key">"ok"</span>: <span class="tok-str">false</span>, <span class="tok-key">"mensaje"</span>: <span class="tok-str">"Error interno al procesar e insertar las citas en la base de datos"</span> }</pre>
+    </div>
+  </section>
+
+  <section id="practicas">
+    <h2><span class="n">06</span> Buenas prácticas</h2>
+    <ul class="tips">
+      <li><span class="ico">📦</span><span><strong>Envía lotes</strong> cuando registres varias citas a la vez (hasta 1000 por petición) en lugar de una llamada por cita.</span></li>
+      <li><span class="ico">🔑</span><span><strong>Mantén fijo el <code class="inline">FECHA_CAPTURA</code></strong> de cada cita: es parte de la llave. Cambiarlo crea un registro nuevo en vez de actualizar.</span></li>
+      <li><span class="ico">♻️</span><span><strong>Para actualizar</strong>, reenvía el registro completo con la misma llave y los datos nuevos.</span></li>
+      <li><span class="ico">📅</span><span><strong>Fechas</strong> siempre en formato <code class="inline">YYYY-MM-DD</code>.</span></li>
+      <li><span class="ico">🔁</span><span><strong>Maneja <code class="inline">429</code> y <code class="inline">5xx</code></strong> con reintentos y espera progresiva (backoff) del lado del cliente.</span></li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  <span>API de Citas de Servicio · Integración BigQuery</span>
+  <span>REST · JSON · HTTPS</span>
+</footer>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeToggle');
+    function current() {
+      var set = root.getAttribute('data-theme');
+      if (set) return set;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function sync() { btn.textContent = current() === 'dark' ? '☀' : '☾'; }
+    sync();
+    btn.addEventListener('click', function () {
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      sync();
+    });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', sync);
+
+    document.querySelectorAll('[data-copy]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var pre = b.closest('.code').querySelector('pre');
+        var text = pre.innerText;
+        navigator.clipboard.writeText(text).then(function () {
+          var old = b.textContent;
+          b.textContent = '✓ Copiado';
+          setTimeout(function () { b.textContent = old; }, 1400);
+        }).catch(function () {});
+      });
+    });
+  })();
+</script>
+</body>
+</html>
