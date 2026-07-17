@@ -1,10 +1,11 @@
 const bigqueryService = require('../services/bigquery.service');
+const postgresService = require('../services/postgres.service');
 
 // Expresión regular para validar formato YYYY-MM-DD
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 // Máximo de registros por petición. Evita lotes gigantes que disparan costo y
-// latencia en BigQuery (protección contra DoS/abuso accidental).
+// latencia (protección contra DoS/abuso accidental).
 const MAX_REGISTROS = 1000;
 
 /**
@@ -37,6 +38,7 @@ function deduplicarLote(registros) {
 
 /**
  * Controlador para la creación e inserción de citas de servicio.
+ * El almacenamiento primario ahora es PostgreSQL (Railway).
  */
 async function crearCitas(req, res) {
   try {
@@ -68,7 +70,7 @@ async function crearCitas(req, res) {
       });
     }
 
-    // 2.1 Limitar el tamaño del lote para proteger BigQuery de peticiones abusivas.
+    // 2.1 Limitar el tamaño del lote para proteger la base de datos de peticiones abusivas.
     if (registros.length > MAX_REGISTROS) {
       return res.status(400).json({
         ok: false,
@@ -118,47 +120,45 @@ async function crearCitas(req, res) {
     // 3.1 Deduplicar dentro del mismo lote (gana el último registro por llave).
     registros = deduplicarLote(registros);
 
-    // 4. Formatear los registros. El correlativo VC ya NO se calcula aquí:
-    // se genera de forma atómica dentro del MERGE en BigQuery para evitar
-    // colisiones bajo peticiones concurrentes (inserciones 24/7).
+    // 4. Formatear los registros.
     const registrosFormateados = registros.map((reg) => {
       return {
-        FOLIO_CITA: reg.FOLIO_CITA ? String(reg.FOLIO_CITA) : null,
-        FECHA_CAPTURA: reg.FECHA_CAPTURA ? String(reg.FECHA_CAPTURA) : null,
-        FECHA_CITA: reg.FECHA_CITA ? String(reg.FECHA_CITA) : null,
-        HORA_CITA: reg.HORA_CITA ? String(reg.HORA_CITA) : null,
-        CAPTURO_CITA: reg.CAPTURO_CITA ? String(reg.CAPTURO_CITA) : null,
-        ORIGEN_CITA: reg.ORIGEN_CITA ? String(reg.ORIGEN_CITA) : null,
-        TIPO_CITA: reg.TIPO_CITA ? String(reg.TIPO_CITA) : null,
-        TIPO_SERVICIO: reg.TIPO_SERVICIO ? String(reg.TIPO_SERVICIO) : null,
-        AGENCIA: reg.AGENCIA ? String(reg.AGENCIA) : null,
-        NOMBRE: reg.NOMBRE ? String(reg.NOMBRE) : null,
-        TELEFONO: reg.TELEFONO ? String(reg.TELEFONO) : null,
-        MODELO: reg.MODELO ? String(reg.MODELO) : null,
-        ANO: reg.ANO ? String(reg.ANO) : null,
-        SERIE: reg.SERIE ? String(reg.SERIE) : null,
-        ASESOR_SERVICIO: reg.ASESOR_SERVICIO ? String(reg.ASESOR_SERVICIO) : null,
+        FOLIO_CITA:            reg.FOLIO_CITA ? String(reg.FOLIO_CITA) : null,
+        FECHA_CAPTURA:         reg.FECHA_CAPTURA ? String(reg.FECHA_CAPTURA) : null,
+        FECHA_CITA:            reg.FECHA_CITA ? String(reg.FECHA_CITA) : null,
+        HORA_CITA:             reg.HORA_CITA ? String(reg.HORA_CITA) : null,
+        CAPTURO_CITA:          reg.CAPTURO_CITA ? String(reg.CAPTURO_CITA) : null,
+        ORIGEN_CITA:           reg.ORIGEN_CITA ? String(reg.ORIGEN_CITA) : null,
+        TIPO_CITA:             reg.TIPO_CITA ? String(reg.TIPO_CITA) : null,
+        TIPO_SERVICIO:         reg.TIPO_SERVICIO ? String(reg.TIPO_SERVICIO) : null,
+        AGENCIA:               reg.AGENCIA ? String(reg.AGENCIA) : null,
+        NOMBRE:                reg.NOMBRE ? String(reg.NOMBRE) : null,
+        TELEFONO:              reg.TELEFONO ? String(reg.TELEFONO) : null,
+        MODELO:                reg.MODELO ? String(reg.MODELO) : null,
+        ANO:                   reg.ANO ? String(reg.ANO) : null,
+        SERIE:                 reg.SERIE ? String(reg.SERIE) : null,
+        ASESOR_SERVICIO:       reg.ASESOR_SERVICIO ? String(reg.ASESOR_SERVICIO) : null,
         // Campos que deben forzarse en null
-        SERVICIO_EXPRESS: null,
-        CONFIRMADA: null,
-        ASISTIO: null,
-        ORDEN: null,
-        REAGENDO: null,
-        ASISTIO_REAGENDA: null,
-        OBSERVACIONES: null,
-        TIPO_OPORTUNIDAD: null,
-        ORIGEN_REAGENDA: null,
-        CANCELADA: null,
+        SERVICIO_EXPRESS:      null,
+        CONFIRMADA:            null,
+        ASISTIO:               null,
+        ORDEN:                 null,
+        REAGENDO:              null,
+        ASISTIO_REAGENDA:      null,
+        OBSERVACIONES:         null,
+        TIPO_OPORTUNIDAD:      null,
+        ORIGEN_REAGENDA:       null,
+        CANCELADA:             null,
         // Campo del esquema destino
         HIGHLIGHT_MES_ANTERIOR: reg.HIGHLIGHT_MES_ANTERIOR ? String(reg.HIGHLIGHT_MES_ANTERIOR) : null
       };
     });
 
-    // 6. Insertar/actualizar en BigQuery (upsert por llave FOLIO_CITA-AGENCIA-FECHA_CAPTURA).
-    // Si la llave ya existe, el registro anterior se reemplaza por este (datos más recientes).
-    await bigqueryService.upsertCitas(registrosFormateados);
+    // 5. Insertar/actualizar en PostgreSQL (almacenamiento primario).
+    // Upsert por llave FOLIO_CITA-AGENCIA-FECHA_CAPTURA.
+    await postgresService.upsertCitas(registrosFormateados);
 
-    // 7. Retornar respuesta exitosa
+    // 6. Retornar respuesta exitosa
     return res.status(200).json({
       ok: true,
       mensaje: "Citas insertadas correctamente",
@@ -176,8 +176,64 @@ async function crearCitas(req, res) {
   }
 }
 
+/**
+ * Sincroniza hacia BigQuery todas las citas de una FECHA_CITA específica,
+ * tomando los datos desde PostgreSQL como fuente de verdad.
+ *
+ * Body esperado: { "fecha": "YYYY-MM-DD" }
+ */
+async function syncBigquery(req, res) {
+  try {
+    const { fecha } = req.body || {};
+
+    // Validar que se proporcionó la fecha
+    if (!fecha) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: "Campo requerido: fecha (formato YYYY-MM-DD)"
+      });
+    }
+
+    // Validar que sea una fecha real
+    if (!esFechaValida(fecha)) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: "Formato inválido para fecha. Debe ser una fecha real YYYY-MM-DD"
+      });
+    }
+
+    // Leer desde PostgreSQL todas las citas de esa FECHA_CITA
+    const registros = await postgresService.getCitasByFecha(fecha);
+
+    if (registros.length === 0) {
+      return res.status(200).json({
+        ok: true,
+        mensaje: `No se encontraron citas para la fecha ${fecha} en la base de datos`,
+        registros_sincronizados: 0
+      });
+    }
+
+    // Insertar/actualizar en BigQuery usando el servicio existente
+    await bigqueryService.upsertCitas(registros);
+
+    return res.status(200).json({
+      ok: true,
+      mensaje: `Citas de ${fecha} sincronizadas correctamente en BigQuery`,
+      registros_sincronizados: registros.length
+    });
+
+  } catch (error) {
+    console.error("Error no manejado en syncBigquery:", error.message);
+    return res.status(500).json({
+      ok: false,
+      mensaje: "Error interno al sincronizar citas con BigQuery"
+    });
+  }
+}
+
 module.exports = {
   crearCitas,
+  syncBigquery,
   esFechaValida,
   deduplicarLote,
   MAX_REGISTROS

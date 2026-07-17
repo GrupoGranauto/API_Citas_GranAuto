@@ -1,0 +1,38 @@
+[
+  {
+    "FOLIO_CITA": "987654",
+    "FECHA_CAPTURA": "2026-06-15",
+    "FECHA_CITA": "2026-06-20",
+    "HORA_CITA": "09:30",
+    "CAPTURO_CITA": "Portal Web",
+    "ORIGEN_CITA": "INTERNET",
+    "TIPO_CITA": "SERVICIO",
+    "TIPO_SERVICIO": "MANTENIMIENTO DE 10,000 KM",
+    "AGENCIA": "GRANAUTO NISSAN",
+    "NOMBRE": "Juan Alberto Perez Gomez",
+    "TELEFONO": "6141234567",
+    "MODELO": "VERSA",
+    "ANO": "2024",
+    "SERIE": "3N1CN7AP5KL123456",
+    "ASESOR_SERVICIO": "Roberto Ramirez",
+    "HIGHLIGHT_MES_ANTERIOR": "Cliente solicitó lavado premium"
+  },
+  {
+    "FOLIO_CITA": "987655",
+    "FECHA_CAPTURA": "2026-06-14",
+    "FECHA_CITA": "2026-06-21",
+    "HORA_CITA": "11:00",
+    "CAPTURO_CITA": "Call Center",
+    "ORIGEN_CITA": "TELEFONO",
+    "TIPO_CITA": "SERVICIO",
+    "TIPO_SERVICIO": "DIAGNOSTICO DE FRENOS",
+    "AGENCIA": "GRANAUTO NISSAN",
+    "NOMBRE": "Maria Luisa Lopez Ortiz",
+    "TELEFONO": "6149876543",
+    "MODELO": "SENTRA",
+    "ANO": "2023",
+    "SERIE": "3N1CN7AP5KL789012",
+    "ASESOR_SERVICIO": "Ana Gomez",
+    "HIGHLIGHT_MES_ANTERIOR": "Revisar ruido en suspensión trasera"
+  }
+]

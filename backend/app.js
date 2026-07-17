@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const citasRouter = require('./routes/citas.routes');
+const postgresService = require('./services/postgres.service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -76,8 +77,18 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Iniciar servidor express
-app.listen(PORT, () => {
-  console.log(`[Servidor] API de Citas corriendo en el puerto ${PORT}`);
-  console.log(`[Servidor] Endpoint listo en: http://localhost:${PORT}/api/citas`);
-});
+// Iniciar servidor express: primero se verifica/crea la tabla en Postgres,
+// luego se empieza a aceptar peticiones. Si la DB no está disponible, el
+// proceso termina con error para que el orquestador (Railway) lo reinicie.
+postgresService.initDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`[Servidor] API de Citas corriendo en el puerto ${PORT}`);
+      console.log(`[Servidor] Endpoint listo en: http://localhost:${PORT}/api/citas`);
+      console.log(`[Servidor] Endpoint sync BigQuery: http://localhost:${PORT}/api/citas/sync-bigquery`);
+    });
+  })
+  .catch((err) => {
+    console.error('[Servidor] No se pudo inicializar la base de datos PostgreSQL:', err.message);
+    process.exit(1);
+  });
