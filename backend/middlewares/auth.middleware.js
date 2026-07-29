@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 
 /**
  * Compara dos cadenas en tiempo constante para evitar ataques de timing.
@@ -19,18 +20,20 @@ module.exports = (req, res, next) => {
   const expectedApiKey = process.env.API_KEY;
 
   if (!expectedApiKey) {
-    console.warn("ADVERTENCIA: API_KEY no está configurada en las variables de entorno (.env).");
+    logger.error('auth.api_key_not_configured', { requestId: req.requestId });
     // Sin clave configurada no se puede autenticar: se rechaza por seguridad.
     return res.status(401).json({
       ok: false,
-      mensaje: "API KEY inválida"
+      mensaje: "API KEY inválida",
+      requestId: req.requestId
     });
   }
 
   if (!apiKeyHeader || !comparacionSegura(apiKeyHeader, expectedApiKey)) {
     return res.status(401).json({
       ok: false,
-      mensaje: "API KEY inválida"
+      mensaje: "API KEY inválida",
+      requestId: req.requestId
     });
   }
 

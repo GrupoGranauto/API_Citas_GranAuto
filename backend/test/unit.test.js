@@ -1,6 +1,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { esFechaValida, deduplicarLote } = require('../controllers/citas.controller');
+const { limpiar, serializarError } = require('../utils/logger');
+const { normalizarFechaPostgres } = require('../services/postgres.service');
 
 test('esFechaValida: acepta fechas reales YYYY-MM-DD', () => {
   assert.strictEqual(esFechaValida('2026-07-11'), true);
@@ -41,4 +43,64 @@ test('deduplicarLote: llaves con guiones NO colisionan', () => {
   ];
   const res = deduplicarLote(lote);
   assert.strictEqual(res.length, 2); // no se fusionan
+});
+
+test('logger: oculta secretos y PII en metadata anidada', () => {
+  const limpio = limpiar({
+    requestId: 'abc',
+    headers: { authorization: 'Bearer secreto', 'x-api-key': 'secreto' },
+    registro: { NOMBRE: 'Persona', TELEFONO: '555', FOLIO_CITA: 'F-1' }
+  });
+  assert.strictEqual(limpio.headers.authorization, '[REDACTED]');
+  assert.strictEqual(limpio.headers['x-api-key'], '[REDACTED]');
+  assert.strictEqual(limpio.registro.NOMBRE, '[REDACTED]');
+  assert.strictEqual(limpio.registro.TELEFONO, '[REDACTED]');
+  assert.strictEqual(limpio.registro.FOLIO_CITA, 'F-1');
+});
+
+test('logger: conserva stack y código de un error', () => {
+  const error = new Error('falló conexión');
+  error.code = 'ECONNRESET';
+  const serializado = serializarError(error);
+  assert.strictEqual(serializado.message, 'falló conexión');
+  assert.strictEqual(serializado.code, 'ECONNRESET');
+  assert.match(serializado.stack, /falló conexión/);
+});
+
+test('normalizarFechaPostgres: soporta DATE como string o Date', () => {
+  assert.strictEqual(normalizarFechaPostgres('2026-07-28'), '2026-07-28');
+  assert.strictEqual(
+    normalizarFechaPostgres(new Date('2026-07-28T23:59:59.000Z')),
+    '2026-07-28'
+  );
+  assert.strictEqual(normalizarFechaPostgres(null), null);
+  assert.throws(
+    () => normalizarFechaPostgres('28/07/2026'),
+    /formato inesperado/
+  );
+});
+
+test('crearCitas: rechaza elementos no objeto como error de cliente', async () => {
+  const { crearCitas } = require('../controllers/citas.controller');
+  const req = { body: [null] };
+  const respuesta = {};
+  const res = {
+    status(codigo) {
+      respuesta.codigo = codigo;
+      return this;
+    },
+    json(body) {
+      respuesta.body = body;
+      return this;
+    }
+  };
+  let errorSiguiente;
+
+  await crearCitas(req, res, (error) => {
+    errorSiguiente = error;
+  });
+
+  assert.strictEqual(errorSiguiente, undefined);
+  assert.strictEqual(respuesta.codigo, 400);
+  assert.match(respuesta.body.mensaje, /posición 0/);
 });

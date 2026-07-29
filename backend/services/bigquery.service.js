@@ -1,5 +1,6 @@
 const { BigQuery } = require('@google-cloud/bigquery');
 const path = require('path');
+const logger = require('../utils/logger');
 
 const bigqueryOptions = {
   projectId: process.env.PROJECT_ID
@@ -10,7 +11,8 @@ if (process.env.GOOGLE_CREDENTIALS_JSON) {
   try {
     bigqueryOptions.credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
   } catch (err) {
-    console.error("Error al parsear la variable GOOGLE_CREDENTIALS_JSON:", err.message);
+    err.message = `GOOGLE_CREDENTIALS_JSON no contiene JSON válido: ${err.message}`;
+    throw err;
   }
 } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   // Cargar desde archivo físico (ideal para desarrollo local)
@@ -56,7 +58,11 @@ async function ejecutarConReintento(opciones) {
         throw error;
       }
       const backoff = 250 * 2 ** (intento - 1); // 250ms, 500ms, 1000ms...
-      console.warn(`BigQuery: fallo transitorio (intento ${intento}/${BQ_MAX_REINTENTOS}), reintentando en ${backoff}ms: ${error.message}`);
+      logger.warn('bigquery.retry', {
+        attempt: intento,
+        maxAttempts: BQ_MAX_REINTENTOS,
+        backoffMs: backoff
+      }, error);
       await esperar(backoff);
     }
   }
@@ -115,6 +121,13 @@ async function upsertCitas(registros) {
     return;
   }
 
+  const faltantes = ['PROJECT_ID', 'DATASET_ID', 'TABLE_ID'].filter((nombre) => !process.env[nombre]);
+  if (faltantes.length) {
+    const error = new Error(`Configuración de BigQuery incompleta: faltan ${faltantes.join(', ')}`);
+    error.code = 'BIGQUERY_CONFIG_MISSING';
+    throw error;
+  }
+
   const tablaCompleta = `${process.env.PROJECT_ID}.${process.env.DATASET_ID}.${process.env.TABLE_ID}`;
 
   // Expresiones de la subconsulta source: las fechas se parsean a DATE.
@@ -171,11 +184,6 @@ async function upsertCitas(registros) {
     } catch (error) {
       // Se loguea solo el motivo del error, NO los datos del registro, para no
       // filtrar PII (nombre, teléfono) a los logs.
-      const razones = (error.errors || []).map((e) => e.reason || e.message).filter(Boolean);
-      console.error(
-        `Error al ejecutar MERGE (upsert) en BigQuery: ${error.message}` +
-        (razones.length ? ` | razones: ${razones.join(', ')}` : '')
-      );
       throw error;
     }
   });
