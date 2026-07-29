@@ -1,12 +1,19 @@
-# API de Citas de Servicio a BigQuery
+# API de Citas de Servicio
 
-Esta es una API REST desarrollada en Node.js con Express diseñada para recibir citas de servicio, validarlas, asignarles una columna correlativa/incremental `VC` (consultando el máximo actual de la tabla destino de BigQuery) y realizar la inserción de registros por streaming en Google Cloud BigQuery.
+API REST en Node.js y Express para recibir citas, validarlas y almacenarlas en
+PostgreSQL. La sincronización a BigQuery se ejecuta explícitamente por fecha
+mediante `POST /api/citas/sync-bigquery`.
+
+Incluye autenticación por API key, rate limiting, CORS por whitelist, logs JSON
+sin PII, identificadores de petición, health check de PostgreSQL y apagado
+controlado.
 
 ## Estructura del Proyecto
 
 ```
 backend/
 ├── app.js
+├── server.js
 ├── package.json
 ├── .env
 ├── .env.example
@@ -15,9 +22,17 @@ backend/
 ├── controllers/
 │   └── citas.controller.js
 ├── services/
-│   └── bigquery.service.js
+│   ├── bigquery.service.js
+│   └── postgres.service.js
 ├── middlewares/
-│   └── auth.middleware.js
+│   ├── auth.middleware.js
+│   └── observability.middleware.js
+├── utils/
+│   └── logger.js
+├── test/
+│   ├── http.test.js
+│   ├── integration.test.js
+│   └── unit.test.js
 └── credentials/
     └── service-account.json
 ```
@@ -25,6 +40,7 @@ backend/
 ## Requisitos Previos
 
 - [Node.js](https://nodejs.org/) (versión 18 o superior recomendada).
+- Una base de datos PostgreSQL.
 - Cuenta de Google Cloud con acceso a BigQuery.
 
 ## Instalación
@@ -50,11 +66,18 @@ cp .env.example .env
 
 Edita el archivo `.env` configurando tus valores:
 - `PORT`: Puerto donde correrá el servidor (por defecto `3000`).
+- `DATABASE_URL`: URL de conexión de PostgreSQL.
 - `PROJECT_ID`: ID del proyecto de Google Cloud (por defecto `base-maestra-gn`).
 - `DATASET_ID`: ID del Dataset en BigQuery (por defecto `Respaldo`).
 - `TABLE_ID`: ID de la tabla destino en BigQuery (por defecto `tab_respaldo_master_citas`).
 - `API_KEY`: API Key secreta requerida para autorizar las peticiones.
 - `GOOGLE_APPLICATION_CREDENTIALS`: Ruta relativa o absoluta al archivo JSON de credenciales (por defecto `./credentials/service-account.json`).
+- `ALLOWED_ORIGINS`: Orígenes web permitidos, separados por comas. Vacío permite
+  únicamente clientes sin encabezado `Origin`.
+- `RATE_LIMIT_WINDOW_MS` y `RATE_LIMIT_MAX`: Ventana y máximo del rate limit.
+- `PG_CONNECTION_TIMEOUT_MS` y `PG_QUERY_TIMEOUT_MS`: Límites de espera de PostgreSQL.
+- `SHUTDOWN_TIMEOUT_MS`: Tiempo máximo para el apagado controlado.
+- `LOG_LEVEL`: `debug`, `info`, `warn`, `error` o `fatal`.
 
 ### 2. Cuenta de Servicio de Google Cloud (`service-account.json`)
 
@@ -79,7 +102,18 @@ Para iniciar el servidor en modo de desarrollo (con recarga automática ante cam
 npm run dev
 ```
 
-El servidor estará escuchando en `http://localhost:3000` (o el puerto configurado). Puedes monitorear la salud de la API en: `http://localhost:3000/health`.
+El servidor estará escuchando en `http://localhost:3000` (o el puerto configurado).
+`GET /health` devuelve `200` cuando PostgreSQL está disponible y `503` cuando no
+lo está.
+
+## Pruebas
+
+```bash
+npm test
+```
+
+Las pruebas de BigQuery se omiten automáticamente cuando no hay credenciales
+configuradas.
 
 ## Ejemplos de Uso (Peticiones con cURL)
 

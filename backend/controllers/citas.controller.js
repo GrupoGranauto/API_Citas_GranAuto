@@ -40,7 +40,7 @@ function deduplicarLote(registros) {
  * Controlador para la creación e inserción de citas de servicio.
  * El almacenamiento primario ahora es PostgreSQL (Railway).
  */
-async function crearCitas(req, res) {
+async function crearCitas(req, res, next) {
   try {
     // 1. Validar que exista cuerpo en la petición
     if (!req.body) {
@@ -81,6 +81,13 @@ async function crearCitas(req, res) {
     // 3. Validar requeridos y formato de fechas para cada registro
     for (let i = 0; i < registros.length; i++) {
       const reg = registros[i];
+
+      if (!reg || typeof reg !== 'object' || Array.isArray(reg)) {
+        return res.status(400).json({
+          ok: false,
+          mensaje: `El registro en la posición ${i} debe ser un objeto`
+        });
+      }
 
       // Campos requeridos mínimos
       if (!reg.FOLIO_CITA) {
@@ -166,13 +173,8 @@ async function crearCitas(req, res) {
     });
 
   } catch (error) {
-    // El error de inserción ya fue logueado en el servicio. Aquí solo el mensaje,
-    // sin volcar el objeto completo (podría contener datos del payload / PII).
-    console.error("Error no manejado en crearCitas:", error.message);
-    return res.status(500).json({
-      ok: false,
-      mensaje: "Error interno al procesar e insertar las citas en la base de datos"
-    });
+    error.publicMessage = "Error interno al procesar e insertar las citas en la base de datos";
+    return next(error);
   }
 }
 
@@ -182,7 +184,7 @@ async function crearCitas(req, res) {
  *
  * Body esperado: { "fecha": "YYYY-MM-DD" }
  */
-async function syncBigquery(req, res) {
+async function syncBigquery(req, res, next) {
   try {
     const { fecha } = req.body || {};
 
@@ -223,11 +225,8 @@ async function syncBigquery(req, res) {
     });
 
   } catch (error) {
-    console.error("Error no manejado en syncBigquery:", error.message);
-    return res.status(500).json({
-      ok: false,
-      mensaje: "Error interno al sincronizar citas con BigQuery"
-    });
+    error.publicMessage = "Error interno al sincronizar citas con BigQuery";
+    return next(error);
   }
 }
 

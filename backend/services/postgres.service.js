@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const logger = require('../utils/logger');
 
 // En Railway, la variable DATABASE_URL apunta al host interno (railway.internal).
 // En desarrollo local usa DATABASE_URL con la URL pública (switchback.proxy.rlwy.net).
@@ -8,11 +9,13 @@ const esConexionInterna = connectionString && connectionString.includes('railway
 
 const pool = new Pool({
   connectionString,
-  ssl: esConexionInterna ? false : { rejectUnauthorized: false }
+  ssl: esConexionInterna ? false : { rejectUnauthorized: false },
+  connectionTimeoutMillis: Number(process.env.PG_CONNECTION_TIMEOUT_MS) || 5000,
+  query_timeout: Number(process.env.PG_QUERY_TIMEOUT_MS) || 30000
 });
 
 pool.on('error', (err) => {
-  console.error('[Postgres] Error inesperado en el pool de conexiones:', err.message);
+  logger.error('postgres.pool_error', {}, err);
 });
 
 /**
@@ -54,9 +57,9 @@ async function initDB() {
         PRIMARY KEY (folio_cita, agencia, fecha_captura)
       )
     `);
-    console.log('[Postgres] Tabla "citas" verificada/creada correctamente.');
+    logger.info('postgres.schema_ready');
   } catch (err) {
-    console.error('[Postgres] Error al crear/verificar la tabla:', err.message);
+    logger.error('postgres.schema_init_failed', {}, err);
     throw err;
   } finally {
     client.release();
@@ -151,7 +154,6 @@ async function upsertCitas(registros) {
   } catch (err) {
     await client.query('ROLLBACK');
     // No se loguean los datos del registro para evitar filtrar PII a los logs.
-    console.error('[Postgres] Error en upsertCitas, ROLLBACK ejecutado:', err.message);
     throw err;
   } finally {
     client.release();
@@ -171,14 +173,12 @@ async function getCitasByFecha(fecha) {
     [fecha]
   );
 
-  // Las fechas llegan como objetos Date de pg; se convierten a string YYYY-MM-DD.
-  const formatFecha = (d) => (d ? d.toISOString().split('T')[0] : null);
   const str = (v) => (v !== null && v !== undefined ? String(v) : null);
 
   return rows.map((row) => ({
     FOLIO_CITA:            str(row.folio_cita),
-    FECHA_CAPTURA:         formatFecha(row.fecha_captura),
-    FECHA_CITA:            formatFecha(row.fecha_cita),
+    FECHA_CAPTURA:         normalizarFechaPostgres(row.fecha_captura),
+    FECHA_CITA:            normalizarFechaPostgres(row.fecha_cita),
     HORA_CITA:             str(row.hora_cita),
     CAPTURO_CITA:          str(row.capturo_cita),
     ORIGEN_CITA:           str(row.origen_cita),
@@ -205,4 +205,37 @@ async function getCitasByFecha(fecha) {
   }));
 }
 
-module.exports = { initDB, upsertCitas, getCitasByFecha };
+/**
+ * node-postgres normalmente entrega DATE como string, pero un parser global
+ * personalizado puede entregarlo como Date. Se soportan ambos casos sin aplicar
+ * conversiones de zona horaria a los strings que ya vienen como YYYY-MM-DD.
+ */
+function normalizarFechaPostgres(valor) {
+  if (valor === null || valor === undefined) return null;
+  if (valor instanceof Date) {
+    if (Number.isNaN(valor.getTime())) {
+      throw new TypeError('PostgreSQL devolvió una fecha inválida');
+    }
+    return valor.toISOString().slice(0, 10);
+  }
+  const fecha = String(valor);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return fecha;
+  throw new TypeError(`PostgreSQL devolvió una fecha con formato inesperado: ${fecha}`);
+}
+
+async function healthCheck() {
+  await pool.query('SELECT 1');
+}
+
+async function close() {
+  await pool.end();
+}
+
+module.exports = {
+  initDB,
+  upsertCitas,
+  getCitasByFecha,
+  healthCheck,
+  close,
+  normalizarFechaPostgres
+};
