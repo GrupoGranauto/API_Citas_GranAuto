@@ -4,7 +4,8 @@ backend/node_modules/
 
 # Ignorar archivos de configuración local y credenciales
 backend/.env
-backend/credentials/service-account.json
+backend/.env.bak
+backend/credentials/
 
 # Logs y temporales
 backend/npm-debug.log*

@@ -1,9 +1,5 @@
 const { Pool } = require('pg');
 const logger = require('../utils/logger');
-
-// En Railway, la variable DATABASE_URL apunta al host interno (railway.internal).
-// En desarrollo local usa DATABASE_URL con la URL pública (switchback.proxy.rlwy.net).
-// Solo se requiere SSL para conexiones externas al cluster de Railway.
 const connectionString = process.env.DATABASE_URL;
 const esConexionInterna = connectionString && connectionString.includes('railway.internal');
 
@@ -43,17 +39,12 @@ async function initDB() {
         ano                   TEXT,
         serie                 TEXT,
         asesor_servicio       TEXT,
-        servicio_express      TEXT,
-        confirmada            TEXT,
-        asistio               TEXT,
-        orden                 TEXT,
-        reagendo              TEXT,
-        asistio_reagenda      TEXT,
-        observaciones         TEXT,
-        tipo_oportunidad      TEXT,
-        origen_reagenda       TEXT,
-        cancelada             TEXT,
         highlight_mes_anterior TEXT,
+        status_cita           TEXT,
+        tel_casa              TEXT,
+        oficina               TEXT,
+        placas                TEXT,
+        codigo_postal         TEXT,
         PRIMARY KEY (folio_cita, agencia, fecha_captura)
       )
     `);
@@ -87,13 +78,12 @@ async function upsertCitas(registros) {
           folio_cita, fecha_captura, fecha_cita, hora_cita,
           capturo_cita, origen_cita, tipo_cita, tipo_servicio, agencia,
           nombre, telefono, modelo, ano, serie, asesor_servicio,
-          servicio_express, confirmada, asistio, orden, reagendo,
-          asistio_reagenda, observaciones, tipo_oportunidad, origen_reagenda,
-          cancelada, highlight_mes_anterior
+          highlight_mes_anterior,
+          status_cita, tel_casa, oficina, placas, codigo_postal
         ) VALUES (
           $1, $2::date, $3::date, $4, $5, $6, $7, $8, $9,
-          $10, $11, $12, $13, $14, $15,
-          $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26
+          $10, $11, $12, $13, $14, $15, $16,
+          $17, $18, $19, $20, $21
         )
         ON CONFLICT (folio_cita, agencia, fecha_captura) DO UPDATE SET
           fecha_cita            = EXCLUDED.fecha_cita,
@@ -108,17 +98,12 @@ async function upsertCitas(registros) {
           ano                   = EXCLUDED.ano,
           serie                 = EXCLUDED.serie,
           asesor_servicio       = EXCLUDED.asesor_servicio,
-          servicio_express      = EXCLUDED.servicio_express,
-          confirmada            = EXCLUDED.confirmada,
-          asistio               = EXCLUDED.asistio,
-          orden                 = EXCLUDED.orden,
-          reagendo              = EXCLUDED.reagendo,
-          asistio_reagenda      = EXCLUDED.asistio_reagenda,
-          observaciones         = EXCLUDED.observaciones,
-          tipo_oportunidad      = EXCLUDED.tipo_oportunidad,
-          origen_reagenda       = EXCLUDED.origen_reagenda,
-          cancelada             = EXCLUDED.cancelada,
-          highlight_mes_anterior = EXCLUDED.highlight_mes_anterior`,
+          highlight_mes_anterior = EXCLUDED.highlight_mes_anterior,
+          status_cita           = EXCLUDED.status_cita,
+          tel_casa              = EXCLUDED.tel_casa,
+          oficina               = EXCLUDED.oficina,
+          placas                = EXCLUDED.placas,
+          codigo_postal         = EXCLUDED.codigo_postal`,
         [
           reg.FOLIO_CITA,
           reg.FECHA_CAPTURA,
@@ -135,17 +120,12 @@ async function upsertCitas(registros) {
           reg.ANO,
           reg.SERIE,
           reg.ASESOR_SERVICIO,
-          reg.SERVICIO_EXPRESS,
-          reg.CONFIRMADA,
-          reg.ASISTIO,
-          reg.ORDEN,
-          reg.REAGENDO,
-          reg.ASISTIO_REAGENDA,
-          reg.OBSERVACIONES,
-          reg.TIPO_OPORTUNIDAD,
-          reg.ORIGEN_REAGENDA,
-          reg.CANCELADA,
-          reg.HIGHLIGHT_MES_ANTERIOR
+          reg.HIGHLIGHT_MES_ANTERIOR,
+          reg.STATUS_CITA,
+          reg.TEL_CASA,
+          reg.OFICINA,
+          reg.PLACAS,
+          reg.CODIGO_POSTAL
         ]
       );
     }
@@ -158,51 +138,6 @@ async function upsertCitas(registros) {
   } finally {
     client.release();
   }
-}
-
-/**
- * Devuelve todas las citas cuya FECHA_CITA coincide con la fecha indicada,
- * formateadas como strings (formato esperado por bigquery.service.js).
- *
- * @param {string} fecha - Fecha en formato YYYY-MM-DD.
- * @returns {Promise<Array<Object>>} Registros listos para enviar a BigQuery.
- */
-async function getCitasByFecha(fecha) {
-  const { rows } = await pool.query(
-    `SELECT * FROM citas WHERE fecha_cita = $1::date ORDER BY vc ASC`,
-    [fecha]
-  );
-
-  const str = (v) => (v !== null && v !== undefined ? String(v) : null);
-
-  return rows.map((row) => ({
-    FOLIO_CITA:            str(row.folio_cita),
-    FECHA_CAPTURA:         normalizarFechaPostgres(row.fecha_captura),
-    FECHA_CITA:            normalizarFechaPostgres(row.fecha_cita),
-    HORA_CITA:             str(row.hora_cita),
-    CAPTURO_CITA:          str(row.capturo_cita),
-    ORIGEN_CITA:           str(row.origen_cita),
-    TIPO_CITA:             str(row.tipo_cita),
-    TIPO_SERVICIO:         str(row.tipo_servicio),
-    AGENCIA:               str(row.agencia),
-    NOMBRE:                str(row.nombre),
-    TELEFONO:              str(row.telefono),
-    MODELO:                str(row.modelo),
-    ANO:                   str(row.ano),
-    SERIE:                 str(row.serie),
-    ASESOR_SERVICIO:       str(row.asesor_servicio),
-    SERVICIO_EXPRESS:      str(row.servicio_express),
-    CONFIRMADA:            str(row.confirmada),
-    ASISTIO:               str(row.asistio),
-    ORDEN:                 str(row.orden),
-    REAGENDO:              str(row.reagendo),
-    ASISTIO_REAGENDA:      str(row.asistio_reagenda),
-    OBSERVACIONES:         str(row.observaciones),
-    TIPO_OPORTUNIDAD:      str(row.tipo_oportunidad),
-    ORIGEN_REAGENDA:       str(row.origen_reagenda),
-    CANCELADA:             str(row.cancelada),
-    HIGHLIGHT_MES_ANTERIOR: str(row.highlight_mes_anterior)
-  }));
 }
 
 /**
@@ -234,7 +169,6 @@ async function close() {
 module.exports = {
   initDB,
   upsertCitas,
-  getCitasByFecha,
   healthCheck,
   close,
   normalizarFechaPostgres

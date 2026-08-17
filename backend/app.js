@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const citasRouter = require('./routes/citas.routes');
 const postgresService = require('./services/postgres.service');
 const observabilidad = require('./middlewares/observability.middleware');
+const jsonConEncoding = require('./middlewares/json-encoding.middleware');
 const logger = require('./utils/logger');
 
 const app = express();
@@ -56,8 +57,12 @@ app.use(rateLimit({
   }
 }));
 
-// Middleware para parsear cuerpos de peticiones JSON (límite ampliado a 10MB para lotes grandes)
-app.use(express.json({ limit: '10mb' }));
+// El cuerpo se lee crudo y se decodifica manualmente: express.json() asume UTF-8 y
+// convierte cualquier byte inválido en U+FFFD, perdiendo el carácter original de
+// forma irreversible. jsonConEncoding detecta Windows-1252 y lo recupera.
+// (límite ampliado a 10MB para lotes grandes)
+app.use(express.raw({ type: 'application/json', limit: '10mb' }));
+app.use(jsonConEncoding);
 
 // Endpoint base para monitoreo o salud de la API
 app.get('/health', async (req, res) => {

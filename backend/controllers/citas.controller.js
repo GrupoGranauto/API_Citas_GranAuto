@@ -1,4 +1,3 @@
-const bigqueryService = require('../services/bigquery.service');
 const postgresService = require('../services/postgres.service');
 
 // Expresión regular para validar formato YYYY-MM-DD
@@ -127,7 +126,8 @@ async function crearCitas(req, res, next) {
     // 3.1 Deduplicar dentro del mismo lote (gana el último registro por llave).
     registros = deduplicarLote(registros);
 
-    // 4. Formatear los registros.
+    // 4. Formatear los registros. Solo los campos que provienen del DMS; cualquier
+    // otro campo del payload se ignora.
     const registrosFormateados = registros.map((reg) => {
       return {
         FOLIO_CITA:            reg.FOLIO_CITA ? String(reg.FOLIO_CITA) : null,
@@ -145,19 +145,13 @@ async function crearCitas(req, res, next) {
         ANO:                   reg.ANO ? String(reg.ANO) : null,
         SERIE:                 reg.SERIE ? String(reg.SERIE) : null,
         ASESOR_SERVICIO:       reg.ASESOR_SERVICIO ? String(reg.ASESOR_SERVICIO) : null,
-        // Campos que deben forzarse en null
-        SERVICIO_EXPRESS:      null,
-        CONFIRMADA:            null,
-        ASISTIO:               null,
-        ORDEN:                 null,
-        REAGENDO:              null,
-        ASISTIO_REAGENDA:      null,
-        OBSERVACIONES:         null,
-        TIPO_OPORTUNIDAD:      null,
-        ORIGEN_REAGENDA:       null,
-        CANCELADA:             null,
         // Campo del esquema destino
-        HIGHLIGHT_MES_ANTERIOR: reg.HIGHLIGHT_MES_ANTERIOR ? String(reg.HIGHLIGHT_MES_ANTERIOR) : null
+        HIGHLIGHT_MES_ANTERIOR: reg.HIGHLIGHT_MES_ANTERIOR ? String(reg.HIGHLIGHT_MES_ANTERIOR) : null,
+        STATUS_CITA:           reg.STATUS_CITA ? String(reg.STATUS_CITA) : null,
+        TEL_CASA:              reg.TEL_CASA ? String(reg.TEL_CASA) : null,
+        OFICINA:               reg.OFICINA ? String(reg.OFICINA) : null,
+        PLACAS:                reg.PLACAS ? String(reg.PLACAS) : null,
+        CODIGO_POSTAL:         reg.CODIGO_POSTAL ? String(reg.CODIGO_POSTAL) : null
       };
     });
 
@@ -178,61 +172,8 @@ async function crearCitas(req, res, next) {
   }
 }
 
-/**
- * Sincroniza hacia BigQuery todas las citas de una FECHA_CITA específica,
- * tomando los datos desde PostgreSQL como fuente de verdad.
- *
- * Body esperado: { "fecha": "YYYY-MM-DD" }
- */
-async function syncBigquery(req, res, next) {
-  try {
-    const { fecha } = req.body || {};
-
-    // Validar que se proporcionó la fecha
-    if (!fecha) {
-      return res.status(400).json({
-        ok: false,
-        mensaje: "Campo requerido: fecha (formato YYYY-MM-DD)"
-      });
-    }
-
-    // Validar que sea una fecha real
-    if (!esFechaValida(fecha)) {
-      return res.status(400).json({
-        ok: false,
-        mensaje: "Formato inválido para fecha. Debe ser una fecha real YYYY-MM-DD"
-      });
-    }
-
-    // Leer desde PostgreSQL todas las citas de esa FECHA_CITA
-    const registros = await postgresService.getCitasByFecha(fecha);
-
-    if (registros.length === 0) {
-      return res.status(200).json({
-        ok: true,
-        mensaje: `No se encontraron citas para la fecha ${fecha} en la base de datos`,
-        registros_sincronizados: 0
-      });
-    }
-
-    // Insertar/actualizar en BigQuery usando el servicio existente
-    await bigqueryService.upsertCitas(registros);
-
-    return res.status(200).json({
-      ok: true,
-      mensaje: `Citas de ${fecha} sincronizadas correctamente en BigQuery`,
-      registros_sincronizados: registros.length
-    });
-
-  } catch (error) {
-    error.publicMessage = "Error interno al sincronizar citas con BigQuery";
-    return next(error);
-  }
-}
-
 module.exports = {
   crearCitas,
-  syncBigquery,
   esFechaValida,
   deduplicarLote,
   MAX_REGISTROS

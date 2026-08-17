@@ -1,8 +1,7 @@
 # API de Citas de Servicio
 
 API REST en Node.js y Express para recibir citas, validarlas y almacenarlas en
-PostgreSQL. La sincronización a BigQuery se ejecuta explícitamente por fecha
-mediante `POST /api/citas/sync-bigquery`.
+PostgreSQL.
 
 Incluye autenticación por API key, rate limiting, CORS por whitelist, logs JSON
 sin PII, identificadores de petición, health check de PostgreSQL y apagado
@@ -22,26 +21,21 @@ backend/
 ├── controllers/
 │   └── citas.controller.js
 ├── services/
-│   ├── bigquery.service.js
 │   └── postgres.service.js
 ├── middlewares/
 │   ├── auth.middleware.js
 │   └── observability.middleware.js
 ├── utils/
 │   └── logger.js
-├── test/
-│   ├── http.test.js
-│   ├── integration.test.js
-│   └── unit.test.js
-└── credentials/
-    └── service-account.json
+└── test/
+    ├── http.test.js
+    └── unit.test.js
 ```
 
 ## Requisitos Previos
 
 - [Node.js](https://nodejs.org/) (versión 18 o superior recomendada).
 - Una base de datos PostgreSQL.
-- Cuenta de Google Cloud con acceso a BigQuery.
 
 ## Instalación
 
@@ -57,7 +51,7 @@ backend/
 
 ## Configuración
 
-### 1. Configuración del archivo `.env`
+### Archivo `.env`
 
 Copia el archivo `.env.example` como `.env`:
 ```bash
@@ -67,28 +61,13 @@ cp .env.example .env
 Edita el archivo `.env` configurando tus valores:
 - `PORT`: Puerto donde correrá el servidor (por defecto `3000`).
 - `DATABASE_URL`: URL de conexión de PostgreSQL.
-- `PROJECT_ID`: ID del proyecto de Google Cloud (por defecto `base-maestra-gn`).
-- `DATASET_ID`: ID del Dataset en BigQuery (por defecto `Respaldo`).
-- `TABLE_ID`: ID de la tabla destino en BigQuery (por defecto `tab_respaldo_master_citas`).
 - `API_KEY`: API Key secreta requerida para autorizar las peticiones.
-- `GOOGLE_APPLICATION_CREDENTIALS`: Ruta relativa o absoluta al archivo JSON de credenciales (por defecto `./credentials/service-account.json`).
 - `ALLOWED_ORIGINS`: Orígenes web permitidos, separados por comas. Vacío permite
   únicamente clientes sin encabezado `Origin`.
 - `RATE_LIMIT_WINDOW_MS` y `RATE_LIMIT_MAX`: Ventana y máximo del rate limit.
 - `PG_CONNECTION_TIMEOUT_MS` y `PG_QUERY_TIMEOUT_MS`: Límites de espera de PostgreSQL.
 - `SHUTDOWN_TIMEOUT_MS`: Tiempo máximo para el apagado controlado.
 - `LOG_LEVEL`: `debug`, `info`, `warn`, `error` o `fatal`.
-
-### 2. Cuenta de Servicio de Google Cloud (`service-account.json`)
-
-1. Ve a la consola de Google Cloud, sección **IAM y administración > Cuentas de servicio**.
-2. Crea o selecciona una cuenta de servicio con permisos adecuados:
-   - **Lector de datos de BigQuery** (para realizar la consulta del VC máximo).
-   - **Editor de datos de BigQuery** (para poder realizar inserciones).
-   - **Usuario de BigQuery** (para poder ejecutar jobs/consultas).
-3. Genera una nueva clave en formato JSON.
-4. Descarga el archivo, cámbiale el nombre a `service-account.json` y colócalo dentro de la carpeta:
-   `backend/credentials/` (asegurándote de que coincida con la ruta definida en tu `.env`).
 
 ## Ejecución del Servidor
 
@@ -111,9 +90,6 @@ lo está.
 ```bash
 npm test
 ```
-
-Las pruebas de BigQuery se omiten automáticamente cuando no hay credenciales
-configuradas.
 
 ## Ejemplos de Uso (Peticiones con cURL)
 

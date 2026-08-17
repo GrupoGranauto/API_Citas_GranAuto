@@ -286,7 +286,7 @@
     <div class="brand">
       <span class="glyph" aria-hidden="true">◷</span>
       <div>API de Citas de Servicio
-        <small>Referencia de integración · BigQuery</small>
+        <small>Referencia de integración · PostgreSQL</small>
       </div>
     </div>
     <span class="spacer"></span>
@@ -306,7 +306,7 @@
 <main>
   <section class="hero" id="inicio" style="padding-top:52px">
     <p class="eyebrow">REST · JSON · HTTPS</p>
-    <h1>Registra citas de servicio y guárdalas en BigQuery</h1>
+    <h1>Registra citas de servicio y guárdalas en PostgreSQL</h1>
     <p class="sub">Recibe una o varias citas por petición, valida los datos, evita duplicados y asigna un correlativo interno — automáticamente.</p>
 
     <div class="code">
@@ -419,12 +419,17 @@ curl -X POST https://apicitasgranauto-production.up.railway.app/api/citas <span 
           <tr><td><span class="fname">ORIGEN_CITA</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Canal origen (ej. "WEB", "TELEFONO")</td></tr>
           <tr><td><span class="fname">TIPO_CITA</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Tipo de cita (ej. "SERVICIO")</td></tr>
           <tr><td><span class="fname">TIPO_SERVICIO</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Detalle del servicio (ej. "MANTENIMIENTO")</td></tr>
-          <tr><td><span class="fname">TELEFONO</span></td><td><span class="type">STRING</span></td><td>Numérico</td><td>Teléfono de contacto</td></tr>
+          <tr><td><span class="fname">TELEFONO</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Teléfono celular del cliente</td></tr>
           <tr><td><span class="fname">MODELO</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Modelo del vehículo</td></tr>
           <tr><td><span class="fname">ANO</span></td><td><span class="type">STRING</span></td><td>4 dígitos</td><td>Año del vehículo (ej. "2024")</td></tr>
           <tr><td><span class="fname">SERIE</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Número de serie / VIN</td></tr>
           <tr><td><span class="fname">ASESOR_SERVICIO</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Asesor asignado en la agencia</td></tr>
           <tr><td><span class="fname">HIGHLIGHT_MES_ANTERIOR</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Información adicional</td></tr>
+          <tr><td><span class="fname">STATUS_CITA</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Estatus de la cita (ej. "Activa", "Cancelada")</td></tr>
+          <tr><td><span class="fname">TEL_CASA</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Teléfono de casa del cliente</td></tr>
+          <tr><td><span class="fname">OFICINA</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Teléfono de oficina, con extensión si aplica</td></tr>
+          <tr><td><span class="fname">PLACAS</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Placas del vehículo</td></tr>
+          <tr><td><span class="fname">CODIGO_POSTAL</span></td><td><span class="type">STRING</span></td><td>Texto libre</td><td>Código postal del cliente</td></tr>
         </tbody>
       </table>
     </div>
@@ -433,7 +438,7 @@ curl -X POST https://apicitasgranauto-production.up.railway.app/api/citas <span 
       <strong>⚠️ Fechas reales.</strong> <code class="inline">FECHA_CITA</code> y <code class="inline">FECHA_CAPTURA</code> deben ser fechas válidas en formato <code class="inline">YYYY-MM-DD</code>. Un valor con formato correcto pero imposible (ej. <code class="inline">2026-13-45</code>, o <code class="inline">2026-02-29</code> en año no bisiesto) es rechazado.
     </div>
     <div class="note lock">
-      <strong>🔒 Campos del sistema.</strong> El correlativo <code class="inline">VC</code> y los campos de seguimiento (<code class="inline">SERVICIO_EXPRESS</code>, <code class="inline">CONFIRMADA</code>, <code class="inline">ASISTIO</code>, <code class="inline">ORDEN</code>, <code class="inline">REAGENDO</code>, <code class="inline">ASISTIO_REAGENDA</code>, <code class="inline">OBSERVACIONES</code>, <code class="inline">TIPO_OPORTUNIDAD</code>, <code class="inline">ORIGEN_REAGENDA</code>, <code class="inline">CANCELADA</code>) los administra el backend. Si los envías, se ignoran.
+      <strong>🔒 Campos no reconocidos.</strong> El correlativo <code class="inline">VC</code> lo asigna la base de datos. Cualquier campo fuera de las tablas de arriba —incluidos <code class="inline">SERVICIO_EXPRESS</code>, <code class="inline">CONFIRMADA</code>, <code class="inline">ASISTIO</code>, <code class="inline">ORDEN</code>, <code class="inline">REAGENDO</code>, <code class="inline">ASISTIO_REAGENDA</code>, <code class="inline">OBSERVACIONES</code>, <code class="inline">TIPO_OPORTUNIDAD</code>, <code class="inline">ORIGEN_REAGENDA</code> y <code class="inline">CANCELADA</code>— se ignora en silencio, sin error.
     </div>
   </section>
 
@@ -501,7 +506,7 @@ curl -X POST https://apicitasgranauto-production.up.railway.app/api/citas <span 
 </main>
 
 <footer>
-  <span>API de Citas de Servicio · Integración BigQuery</span>
+  <span>API de Citas de Servicio · Integración PostgreSQL</span>
   <span>REST · JSON · HTTPS</span>
 </footer>
 

@@ -2,7 +2,7 @@
 
 # 📅 API de Citas de Servicio
 
-**Registra citas de servicio y almacénalas en BigQuery**
+**Registra citas de servicio y almacénalas en PostgreSQL**
 
 Recibe una o varias citas por petición · Valida los datos · Evita duplicados · Asigna un correlativo interno
 
@@ -162,16 +162,21 @@ Estos 5 campos son **obligatorios** en cada cita:
 | `ORIGEN_CITA` | STRING | Texto libre | Canal origen (ej. "WEB", "TELEFONO") |
 | `TIPO_CITA` | STRING | Texto libre | Tipo de cita (ej. "SERVICIO") |
 | `TIPO_SERVICIO` | STRING | Texto libre | Detalle del servicio (ej. "MANTENIMIENTO") |
-| `TELEFONO` | STRING | Numérico | Teléfono de contacto |
+| `TELEFONO` | STRING | Texto libre | Teléfono celular del cliente |
 | `MODELO` | STRING | Texto libre | Modelo del vehículo |
 | `ANO` | STRING | 4 dígitos | Año del vehículo (ej. "2024") |
 | `SERIE` | STRING | Texto libre | Número de serie / VIN |
 | `ASESOR_SERVICIO` | STRING | Texto libre | Asesor asignado en la agencia |
 | `HIGHLIGHT_MES_ANTERIOR` | STRING | Texto libre | Información adicional |
+| `STATUS_CITA` | STRING | Texto libre | Estatus de la cita (ej. "Activa", "Cancelada") |
+| `TEL_CASA` | STRING | Texto libre | Teléfono de casa del cliente |
+| `OFICINA` | STRING | Texto libre | Teléfono de oficina, con extensión si aplica |
+| `PLACAS` | STRING | Texto libre | Placas del vehículo |
+| `CODIGO_POSTAL` | STRING | Texto libre | Código postal del cliente |
 
 > ⚠️ **Fechas reales.** `FECHA_CITA` y `FECHA_CAPTURA` deben ser fechas válidas en formato `YYYY-MM-DD`. Un valor con formato correcto pero imposible (ej. `2026-13-45`, o `2026-02-29` en año no bisiesto) es **rechazado**.
 
-> 🔒 **Campos del sistema.** El correlativo `VC` y los campos de seguimiento (`SERVICIO_EXPRESS`, `CONFIRMADA`, `ASISTIO`, `ORDEN`, `REAGENDO`, `ASISTIO_REAGENDA`, `OBSERVACIONES`, `TIPO_OPORTUNIDAD`, `ORIGEN_REAGENDA`, `CANCELADA`) los administra el backend. Si los envías, **se ignoran**.
+> 🔒 **Campos no reconocidos.** El correlativo `VC` lo asigna la base de datos. Cualquier campo fuera de las tablas de arriba —incluidos `SERVICIO_EXPRESS`, `CONFIRMADA`, `ASISTIO`, `ORDEN`, `REAGENDO`, `ASISTIO_REAGENDA`, `OBSERVACIONES`, `TIPO_OPORTUNIDAD`, `ORIGEN_REAGENDA` y `CANCELADA`— **se ignora en silencio**, sin error.
 
 ---
 
@@ -275,5 +280,5 @@ Al recibir un registro, la API decide automáticamente:
 ---
 
 <div align="center">
-<sub>API de Citas de Servicio · Integración BigQuery</sub>
+<sub>API de Citas de Servicio · Integración PostgreSQL</sub>
 </div>
