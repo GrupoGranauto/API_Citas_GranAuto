@@ -147,7 +147,7 @@ async function crearCitas(req, res, next) {
         ASESOR_SERVICIO:       reg.ASESOR_SERVICIO ? String(reg.ASESOR_SERVICIO) : null,
         // Campo del esquema destino
         HIGHLIGHT_MES_ANTERIOR: reg.HIGHLIGHT_MES_ANTERIOR ? String(reg.HIGHLIGHT_MES_ANTERIOR) : null,
-        STATUS:                reg.STATUS ? String(reg.STATUS) : null,
+        ESTATUS:               reg.ESTATUS ? String(reg.ESTATUS) : null,
         TELEFONO_CASA:         reg.TELEFONO_CASA ? String(reg.TELEFONO_CASA) : null,
         TELEFONO_OFICINA:      reg.TELEFONO_OFICINA ? String(reg.TELEFONO_OFICINA) : null,
         PLACAS:                reg.PLACAS ? String(reg.PLACAS) : null,

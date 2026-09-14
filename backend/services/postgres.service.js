@@ -40,7 +40,7 @@ async function initDB() {
         serie                 TEXT,
         asesor_servicio       TEXT,
         highlight_mes_anterior TEXT,
-        status                TEXT,
+        estatus               TEXT,
         telefono_casa         TEXT,
         telefono_oficina      TEXT,
         placas                TEXT,
@@ -54,15 +54,20 @@ async function initDB() {
     `);
 
     // Migración de columnas para tablas creadas antes del renombrado
-    // (status_cita -> status, tel_casa -> telefono_casa, oficina -> telefono_oficina).
+    // (status_cita/status -> estatus, tel_casa -> telefono_casa, oficina -> telefono_oficina).
     // Se usa un chequeo contra information_schema porque PostgreSQL no soporta
     // RENAME COLUMN IF EXISTS.
     await client.query(`
       DO $$
       BEGIN
         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='status_cita')
-           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='status') THEN
-          ALTER TABLE citas RENAME COLUMN status_cita TO status;
+           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='estatus') THEN
+          ALTER TABLE citas RENAME COLUMN status_cita TO estatus;
+        END IF;
+
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='status')
+           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='estatus') THEN
+          ALTER TABLE citas RENAME COLUMN status TO estatus;
         END IF;
 
         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='tel_casa')
@@ -80,7 +85,7 @@ async function initDB() {
     // Agrega columnas nuevas si la tabla ya existía sin ellas.
     await client.query(`
       ALTER TABLE citas
-        ADD COLUMN IF NOT EXISTS status            TEXT,
+        ADD COLUMN IF NOT EXISTS estatus            TEXT,
         ADD COLUMN IF NOT EXISTS telefono_casa      TEXT,
         ADD COLUMN IF NOT EXISTS telefono_oficina   TEXT,
         ADD COLUMN IF NOT EXISTS contacto           TEXT,
@@ -120,7 +125,7 @@ async function upsertCitas(registros) {
           capturo_cita, origen_cita, tipo_cita, tipo_servicio, agencia,
           nombre, telefono, modelo, ano, serie, asesor_servicio,
           highlight_mes_anterior,
-          status, telefono_casa, telefono_oficina, placas, codigo_postal,
+          estatus, telefono_casa, telefono_oficina, placas, codigo_postal,
           contacto, telefono_contacto, email_contacto, notas_al_cliente
         ) VALUES (
           $1, $2::date, $3::date, $4, $5, $6, $7, $8, $9,
@@ -142,7 +147,7 @@ async function upsertCitas(registros) {
           serie                 = EXCLUDED.serie,
           asesor_servicio       = EXCLUDED.asesor_servicio,
           highlight_mes_anterior = EXCLUDED.highlight_mes_anterior,
-          status                = EXCLUDED.status,
+          estatus               = EXCLUDED.estatus,
           telefono_casa         = EXCLUDED.telefono_casa,
           telefono_oficina      = EXCLUDED.telefono_oficina,
           placas                = EXCLUDED.placas,
@@ -168,7 +173,7 @@ async function upsertCitas(registros) {
           reg.SERIE,
           reg.ASESOR_SERVICIO,
           reg.HIGHLIGHT_MES_ANTERIOR,
-          reg.STATUS,
+          reg.ESTATUS,
           reg.TELEFONO_CASA,
           reg.TELEFONO_OFICINA,
           reg.PLACAS,
