@@ -147,11 +147,15 @@ async function crearCitas(req, res, next) {
         ASESOR_SERVICIO:       reg.ASESOR_SERVICIO ? String(reg.ASESOR_SERVICIO) : null,
         // Campo del esquema destino
         HIGHLIGHT_MES_ANTERIOR: reg.HIGHLIGHT_MES_ANTERIOR ? String(reg.HIGHLIGHT_MES_ANTERIOR) : null,
-        STATUS_CITA:           reg.STATUS_CITA ? String(reg.STATUS_CITA) : null,
-        TEL_CASA:              reg.TEL_CASA ? String(reg.TEL_CASA) : null,
-        OFICINA:               reg.OFICINA ? String(reg.OFICINA) : null,
+        STATUS:                reg.STATUS ? String(reg.STATUS) : null,
+        TELEFONO_CASA:         reg.TELEFONO_CASA ? String(reg.TELEFONO_CASA) : null,
+        TELEFONO_OFICINA:      reg.TELEFONO_OFICINA ? String(reg.TELEFONO_OFICINA) : null,
         PLACAS:                reg.PLACAS ? String(reg.PLACAS) : null,
-        CODIGO_POSTAL:         reg.CODIGO_POSTAL ? String(reg.CODIGO_POSTAL) : null
+        CODIGO_POSTAL:         reg.CODIGO_POSTAL ? String(reg.CODIGO_POSTAL) : null,
+        CONTACTO:              reg.CONTACTO ? String(reg.CONTACTO) : null,
+        TELEFONO_CONTACTO:     reg.TELEFONO_CONTACTO ? String(reg.TELEFONO_CONTACTO) : null,
+        EMAIL_CONTACTO:        reg.EMAIL_CONTACTO ? String(reg.EMAIL_CONTACTO) : null,
+        NOTAS_AL_CLIENTE:      reg.NOTAS_AL_CLIENTE ? String(reg.NOTAS_AL_CLIENTE) : null
       };
     });
 

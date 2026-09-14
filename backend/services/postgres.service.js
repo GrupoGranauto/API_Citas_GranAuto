@@ -40,14 +40,55 @@ async function initDB() {
         serie                 TEXT,
         asesor_servicio       TEXT,
         highlight_mes_anterior TEXT,
-        status_cita           TEXT,
-        tel_casa              TEXT,
-        oficina               TEXT,
+        status                TEXT,
+        telefono_casa         TEXT,
+        telefono_oficina      TEXT,
         placas                TEXT,
         codigo_postal         TEXT,
+        contacto              TEXT,
+        telefono_contacto     TEXT,
+        email_contacto        TEXT,
+        notas_al_cliente      TEXT,
         PRIMARY KEY (folio_cita, agencia, fecha_captura)
       )
     `);
+
+    // Migración de columnas para tablas creadas antes del renombrado
+    // (status_cita -> status, tel_casa -> telefono_casa, oficina -> telefono_oficina).
+    // Se usa un chequeo contra information_schema porque PostgreSQL no soporta
+    // RENAME COLUMN IF EXISTS.
+    await client.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='status_cita')
+           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='status') THEN
+          ALTER TABLE citas RENAME COLUMN status_cita TO status;
+        END IF;
+
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='tel_casa')
+           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='telefono_casa') THEN
+          ALTER TABLE citas RENAME COLUMN tel_casa TO telefono_casa;
+        END IF;
+
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='oficina')
+           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='citas' AND column_name='telefono_oficina') THEN
+          ALTER TABLE citas RENAME COLUMN oficina TO telefono_oficina;
+        END IF;
+      END $$;
+    `);
+
+    // Agrega columnas nuevas si la tabla ya existía sin ellas.
+    await client.query(`
+      ALTER TABLE citas
+        ADD COLUMN IF NOT EXISTS status            TEXT,
+        ADD COLUMN IF NOT EXISTS telefono_casa      TEXT,
+        ADD COLUMN IF NOT EXISTS telefono_oficina   TEXT,
+        ADD COLUMN IF NOT EXISTS contacto           TEXT,
+        ADD COLUMN IF NOT EXISTS telefono_contacto  TEXT,
+        ADD COLUMN IF NOT EXISTS email_contacto     TEXT,
+        ADD COLUMN IF NOT EXISTS notas_al_cliente   TEXT
+    `);
+
     logger.info('postgres.schema_ready');
   } catch (err) {
     logger.error('postgres.schema_init_failed', {}, err);
@@ -79,11 +120,13 @@ async function upsertCitas(registros) {
           capturo_cita, origen_cita, tipo_cita, tipo_servicio, agencia,
           nombre, telefono, modelo, ano, serie, asesor_servicio,
           highlight_mes_anterior,
-          status_cita, tel_casa, oficina, placas, codigo_postal
+          status, telefono_casa, telefono_oficina, placas, codigo_postal,
+          contacto, telefono_contacto, email_contacto, notas_al_cliente
         ) VALUES (
           $1, $2::date, $3::date, $4, $5, $6, $7, $8, $9,
           $10, $11, $12, $13, $14, $15, $16,
-          $17, $18, $19, $20, $21
+          $17, $18, $19, $20, $21,
+          $22, $23, $24, $25
         )
         ON CONFLICT (folio_cita, agencia, fecha_captura) DO UPDATE SET
           fecha_cita            = EXCLUDED.fecha_cita,
@@ -99,11 +142,15 @@ async function upsertCitas(registros) {
           serie                 = EXCLUDED.serie,
           asesor_servicio       = EXCLUDED.asesor_servicio,
           highlight_mes_anterior = EXCLUDED.highlight_mes_anterior,
-          status_cita           = EXCLUDED.status_cita,
-          tel_casa              = EXCLUDED.tel_casa,
-          oficina               = EXCLUDED.oficina,
+          status                = EXCLUDED.status,
+          telefono_casa         = EXCLUDED.telefono_casa,
+          telefono_oficina      = EXCLUDED.telefono_oficina,
           placas                = EXCLUDED.placas,
-          codigo_postal         = EXCLUDED.codigo_postal`,
+          codigo_postal         = EXCLUDED.codigo_postal,
+          contacto              = EXCLUDED.contacto,
+          telefono_contacto     = EXCLUDED.telefono_contacto,
+          email_contacto        = EXCLUDED.email_contacto,
+          notas_al_cliente      = EXCLUDED.notas_al_cliente`,
         [
           reg.FOLIO_CITA,
           reg.FECHA_CAPTURA,
@@ -121,11 +168,15 @@ async function upsertCitas(registros) {
           reg.SERIE,
           reg.ASESOR_SERVICIO,
           reg.HIGHLIGHT_MES_ANTERIOR,
-          reg.STATUS_CITA,
-          reg.TEL_CASA,
-          reg.OFICINA,
+          reg.STATUS,
+          reg.TELEFONO_CASA,
+          reg.TELEFONO_OFICINA,
           reg.PLACAS,
-          reg.CODIGO_POSTAL
+          reg.CODIGO_POSTAL,
+          reg.CONTACTO,
+          reg.TELEFONO_CONTACTO,
+          reg.EMAIL_CONTACTO,
+          reg.NOTAS_AL_CLIENTE
         ]
       );
     }
